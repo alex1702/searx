@@ -1,25 +1,29 @@
-## Gigablast (Web)
-#
-# @website     http://gigablast.com
-# @provide-api yes (http://gigablast.com/api.html)
-#
-# @using-api   yes
-# @results     XML
-# @stable      yes
-# @parse       url, title, content
+"""
+ Gigablast (Web)
+
+ @website     http://gigablast.com
+ @provide-api yes (http://gigablast.com/api.html)
+
+ @using-api   yes
+ @results     XML
+ @stable      yes
+ @parse       url, title, content
+"""
 
 from urllib import urlencode
 from cgi import escape
 from lxml import etree
+from random import randint
+from time import time
 
 # engine dependent config
 categories = ['general']
 paging = True
 number_of_results = 5
 
-# search-url
+# search-url, invalid HTTPS certificate
 base_url = 'http://gigablast.com/'
-search_string = 'search?{query}&n={number_of_results}&s={offset}&xml=1&qh=0'
+search_string = 'search?{query}&n={number_of_results}&s={offset}&xml=1&qh=0&uxid={uxid}&rand={rand}'
 
 # specific xpath variables
 results_xpath = '//response//result'
@@ -35,7 +39,9 @@ def request(query, params):
     search_path = search_string.format(
         query=urlencode({'q': query}),
         offset=offset,
-        number_of_results=number_of_results)
+        number_of_results=number_of_results,
+        uxid=randint(10000, 10000000),
+        rand=int(time()))
 
     params['url'] = base_url + search_path
 
