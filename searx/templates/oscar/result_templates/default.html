@@ -13,10 +13,7 @@
 </div>
 {% endif %}
 
+<div class="clearfix"></div>
 {% if result.content %}<p class="result-content">{{ result.content|safe }}</p>{% endif %}
+<div class="clearfix"></div>
 
-{% if rtl %}
-{{ result_footer_rtl(result) }}
-{% else %}
-{{ result_footer(result) }}
-{% endif %}

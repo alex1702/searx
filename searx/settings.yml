@@ -1,15 +1,15 @@
 server:
     port : 8888
-    secret_key : "ultrasecretkey" # change this!
-    debug : False # Debug mode, only for development
+    secret_key : "KwsyWjNYXSjSbAK6Uq6CM6LYZZ2N6cv6" # change this!
+    debug : True # Debug mode, only for development
     request_timeout : 2.0 # seconds
-    base_url : False # Set custom base_url. Possible values: False or "https://your.custom.host/location/"
+    base_url : "https://suche.elaon.de" # Set custom base_url. Possible values: False or "https://your.custom.host/location/"
     themes_path : "" # Custom ui themes path - leave it blank if you didn't change
     default_theme : oscar # ui theme
     https_rewrite : True # Force rewrite result urls. See searx/https_rewrite.py
     useragent_suffix : "" # suffix of searx_useragent, could contain informations like an email address to the administrator
     image_proxy : False # Proxying image results through searx
-    default_locale : "" # Default interface locale - leave blank to detect from browser information or use codes from the 'locales' config section
+    default_locale : "de" # Default interface locale - leave blank to detect from browser information or use codes from the 'locales' config section
 
 # uncomment below section only if you have more than one network interface
 # which can be the source of outgoing search requests
@@ -26,22 +26,22 @@ engines:
 
   - name : bing
     engine : bing
-    locale : en-US
+    locale : de-DE 
     shortcut : bi
 
   - name : bing images
     engine : bing_images
-    locale : en-US
+    locale : de-DE
     shortcut : bii
 
   - name : bing news
     engine : bing_news
-    locale : en-US
+    locale : de-DE
     shortcut : bin
 
   - name : blekko images
     engine : blekko_images
-    locale : en-US
+    locale : de-DE
     shortcut : bli
 
   - name : btdigg
@@ -250,7 +250,7 @@ engines:
 
   - name : vimeo
     engine : vimeo
-    locale : en-US
+    locale : de-DE
     shortcut : vm
 
 #  - name : yacy

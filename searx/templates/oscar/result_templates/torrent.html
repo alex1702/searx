@@ -3,6 +3,8 @@
 {{ result_header(result, favicons) }}
 {{ result_sub_header(result) }}
 
+<div class="clearfix"></div>
+
 <p class="result-content">{{ icon('transfer') }} {{ _('Seeder') }} <span class="badge">{{ result.seed }}</span> &bull; {{ _('Leecher') }} <span class="badge">{{ result.leech }}</span>
 {% if result.filesize %}<br />{{ icon('floppy-disk') }} {{ _('Filesize') }} 
     <span class="badge">
