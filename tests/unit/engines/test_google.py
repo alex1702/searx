@@ -9,7 +9,7 @@ from searx.testing import SearxTestCase
 class TestGoogleEngine(SearxTestCase):
 
     def mock_response(self, text):
-        response = mock.Mock(text=text, url='https://www.google.com/search?q=test&start=0&gbv=1')
+        response = mock.Mock(text=text, url='https://www.google.com/search?q=test&start=0&gbv=1&gws_rd=cr')
         response.search_params = mock.Mock()
         response.search_params.get = mock.Mock(return_value='www.google.com')
         return response
@@ -23,16 +23,12 @@ class TestGoogleEngine(SearxTestCase):
         self.assertIn('url', params)
         self.assertIn(query, params['url'])
         self.assertIn('google.fr', params['url'])
-        self.assertNotIn('PREF', params['cookies'])
-        self.assertIn('NID', params['cookies'])
         self.assertIn('fr', params['headers']['Accept-Language'])
 
         dicto['language'] = 'all'
         params = google.request(query, dicto)
         self.assertIn('google.com', params['url'])
         self.assertIn('en', params['headers']['Accept-Language'])
-        self.assertIn('PREF', params['cookies'])
-        self.assertIn('NID', params['cookies'])
 
     def test_response(self):
         self.assertRaises(AttributeError, google.response, None)
@@ -44,7 +40,7 @@ class TestGoogleEngine(SearxTestCase):
         self.assertEqual(google.response(response), [])
 
         html = """
-        <li class="g">
+        <div class="g">
             <h3 class="r">
                 <a href="http://this.should.be.the.link/">
                     <b>This</b> is <b>the</b> title
@@ -98,35 +94,35 @@ class TestGoogleEngine(SearxTestCase):
                     </a>
                 </div>
             </div>
-        </li>
-        <li class="g">
+        </div>
+        <div class="g">
             <h3 class="r">
                 <a href="http://www.google.com/images?q=toto">
                     <b>This</b>
                 </a>
             </h3>
-        </li>
-        <li class="g">
+        </div>
+        <div class="g">
             <h3 class="r">
                 <a href="http://www.google.com/search?q=toto">
                     <b>This</b> is
                 </a>
             </h3>
-        </li>
-        <li class="g">
+        </div>
+        <div class="g">
             <h3 class="r">
                 <a href="€">
                     <b>This</b> is <b>the</b>
                 </a>
             </h3>
-        </li>
-        <li class="g">
+        </div>
+        <div class="g">
             <h3 class="r">
                 <a href="/url?q=url">
                     <b>This</b> is <b>the</b>
                 </a>
             </h3>
-        </li>
+        </div>
         <p class="_Bmc" style="margin:3px 8px">
             <a href="/search?num=20&amp;safe=off&amp;q=t&amp;revid=1754833769&amp;sa=X&amp;ei=-&amp;ved=">
                 suggestion <b>title</b>
