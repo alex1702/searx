@@ -9,8 +9,7 @@
     <meta name="referrer" content="no-referrer">
     <meta name="viewport" content="width=device-width, initial-scale=1 , maximum-scale=1.0, user-scalable=1" />
     {% block meta %}{% endblock %}
-    <title>{% block title %}{% endblock %}Metasuchmaschine Elaon</title>
-    
+    <title>{% block title %}{% endblock %}{{ instance_name }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}" type="text/css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/oscar.min.css') }}" type="text/css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/leaflet.min.css') }}" type="text/css" />
@@ -31,8 +30,7 @@
     {% block head %}
     {% endblock %}
 
-    <link title="Metasuchmaschine Elaon" type="application/opensearchdescription+xml" rel="search" href="{{ url_for('opensearch') }}"/>
-    
+    <link title="{{ instance_name }}" type="application/opensearchdescription+xml" rel="search" href="{{ url_for('opensearch') }}"/>
     <script type="text/javascript">
         searx = {};
         searx.method = "{{ method or 'POST' }}";
@@ -75,7 +73,7 @@
         <div class="container">
             {% block footer %}
             {% endblock %}
-            <p class="text-muted">{{ _('Powered by') }} <a href="https://github.com/asciimoo/searx">searx</a> - {{ searx_version }} - {{ _('a privacy-respecting, hackable metasearch engine') }}</p>
+            <p class="text-muted">{{ _('Powered by') }} <a href="https://asciimoo.github.io/searx/">searx</a> - {{ searx_version }} - {{ _('a privacy-respecting, hackable metasearch engine') }}</p>
         </div>
     </div>
     <script src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
@@ -86,5 +84,8 @@
     {% for script in scripts %}
         <script src="{{ url_for('static', filename=script) }}"></script>
     {% endfor %}
+    <script type="text/javascript">
+        $(function() { $('a[data-toggle="modal"]').attr('href', '#'); });
+    </script>
 </body>
 </html>
