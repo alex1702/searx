@@ -30,13 +30,7 @@
     {% block head %}
     {% endblock %}
 
-<<<<<<< HEAD
-    <link title="Metasuchmaschine Elaon" type="application/opensearchdescription+xml" rel="search" href="{{ url_for('opensearch') }}"/>
-    
-=======
     <link title="{{ instance_name }}" type="application/opensearchdescription+xml" rel="search" href="{{ url_for('opensearch') }}"/>
-
->>>>>>> master
     <script type="text/javascript">
         searx = {};
         searx.method = "{{ method or 'POST' }}";
