@@ -41,3 +41,13 @@ generally made searx better:
 - @GreenLunar
 - Noemi Vanyi
 - Kang-min Liu
+- Kirill Isakov
+- Guilhem Bonnefille
+- Marc Abonce Seguin
+
+- @jibe-b
+- Christian Pietsch @pietsch
+- @Maxqia
+- Ashutosh Das @pyprism
+- YuLun Shih @imZack
+- Dmitry Mikhirev @mikhirev

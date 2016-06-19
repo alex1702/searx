@@ -1,6 +1,6 @@
 general:
     debug : False # Debug mode, only for development
-    instance_name : "searx" # displayed name
+    instance_name : "Metasuchmaschine Elaon" # displayed name
 
 search:
     safe_search : 0 # Filter results. 0: None, 1: Moderate, 2: Strict
@@ -25,6 +25,8 @@ ui:
 outgoing: # communication with search engines
     request_timeout : 2.0 # seconds
     useragent_suffix : "" # suffix of searx_useragent, could contain informations like an email address to the administrator
+    pool_connections : 100 # Number of different hosts
+    pool_maxsize : 10 # Number of simultaneous requests by host
 # uncomment below section if you want to use a proxy
 # see http://docs.python-requests.org/en/latest/user/advanced/#proxies
 # SOCKS proxies are not supported : see https://github.com/kennethreitz/requests/pull/478
@@ -38,11 +40,29 @@ outgoing: # communication with search engines
 #        - 1.1.1.2
 
 engines:
+  - name : arch linux wiki
+    engine : archlinux
+    shortcut : al
+
+  - name : archive is
+    engine : xpath
+    search_url : https://archive.is/{query}
+    url_xpath : (//div[@class="TEXT-BLOCK"]/a)/@href
+    title_xpath : (//div[@class="TEXT-BLOCK"]/a)
+    content_xpath : //div[@class="TEXT-BLOCK"]/ul/li
+    categories : general
+    timeout : 7.0
+    disabled : True
+    shortcut : ai
+
+  - name : base
+    engine : base
+    shortcut : bs
+
   - name : wikipedia
-    engine : mediawiki
+    engine : wikipedia
     shortcut : wp
     base_url : 'https://{language}.wikipedia.org/'
-    number_of_results : 1
 
   - name : bing
     engine : bing
@@ -63,6 +83,18 @@ engines:
     engine : blekko_images
     locale : de-DE
     shortcut : bin
+
+  - name : bitbucket
+    engine : xpath
+    paging : True
+    search_url : https://bitbucket.org/repo/all/{pageno}?name={query}
+    url_xpath : //article[@class="repo-summary"]//a[@class="repo-link"]/@href
+    title_xpath : //article[@class="repo-summary"]//a[@class="repo-link"]
+    content_xpath : //article[@class="repo-summary"]/p
+    categories : it
+    timeout : 4.0
+    disabled : True
+    shortcut : bb
 
   - name : btdigg
     engine : btdigg
@@ -85,10 +117,24 @@ engines:
   - name : ddg definitions
     engine : duckduckgo_definitions
     shortcut : ddd
+    disabled : True
 
   - name : digg
     engine : digg
     shortcut : dg
+
+  - name : erowid
+    engine : xpath
+    paging : True
+    first_page_num : 0
+    page_size : 30
+    search_url : https://www.erowid.org/search.php?q={query}&s={pageno}
+    url_xpath : //dl[@class="results-list"]/dt[@class="result-title"]/a/@href
+    title_xpath : //dl[@class="results-list"]/dt[@class="result-title"]/a/text()
+    content_xpath : //dl[@class="results-list"]/dd[@class="result-details"]
+    categories : general
+    shortcut : ew
+    disabled : True
 
   - name : wikidata
     engine : wikidata
@@ -113,6 +159,11 @@ engines:
     shortcut : 1x
     disabled : True
 
+  - name : fdroid
+    engine : fdroid
+    shortcut : fd
+    disabled : True
+
   - name : flickr
     categories : images
     shortcut : fl
@@ -132,6 +183,18 @@ engines:
     engine : gigablast
     shortcut : gb
     disabled: True
+
+  - name : gitlab
+    engine : xpath
+    paging : True
+    search_url : https://gitlab.com/search?page={pageno}&search={query}
+    url_xpath : //li[@class="project-row"]//a[@class="project"]/@href
+    title_xpath : //li[@class="project-row"]//span[contains(@class, "project-full-name")]
+    content_xpath : //li[@class="project-row"]//div[@class="description"]/p
+    categories : it
+    shortcut : gl
+    timeout : 5.0
+    disabled : True
 
   - name : github
     engine : github
@@ -179,9 +242,38 @@ engines:
     shortcut : gps
     disabled : True
 
+  - name : geektimes
+    engine : xpath
+    paging : True
+    search_url : https://geektimes.ru/search/page{pageno}/?q={query}
+    url_xpath : //div[@class="search_results"]//a[@class="post__title_link"]/@href
+    title_xpath : //div[@class="search_results"]//a[@class="post__title_link"]
+    content_xpath : //div[@class="search_results"]//div[contains(@class, "content")]
+    categories : it
+    timeout : 4.0
+    disabled : True
+    shortcut : gt
+
+  - name : habrahabr
+    engine : xpath
+    paging : True
+    search_url : https://habrahabr.ru/search/page{pageno}/?q={query}
+    url_xpath : //div[@class="search_results"]//a[@class="post_title"]/@href
+    title_xpath : //div[@class="search_results"]//a[@class="post_title"]
+    content_xpath : //div[@class="search_results"]//div[contains(@class, "content")]
+    categories : it
+    timeout : 4.0
+    disabled : True
+    shortcut : habr
+
   - name : mixcloud
     engine : mixcloud
     shortcut : mc
+
+  - name : nyaa
+    engine : nyaa
+    shortcut : nt
+    disabled : True
 
   - name : openstreetmap
     engine : openstreetmap
@@ -216,6 +308,13 @@ engines:
     engine : qwant
     shortcut : qws
     categories : social media
+
+  - name : reddit
+    engine : reddit
+    shortcut : re
+    page_size : 25
+    timeout : 10.0
+    disabled : True
 
   - name : kickass
     engine : kickass
@@ -267,6 +366,17 @@ engines:
     engine : swisscows
     shortcut : sw
     disabled : True
+
+  - name : tokyotoshokan
+    engine : tokyotoshokan
+    shortcut : tt
+    timeout : 6.0
+    disabled : True
+
+  - name : torrentz
+    engine : torrentz
+    timeout : 5.0
+    shortcut : to
 
   - name : twitter
     engine : twitter
@@ -341,6 +451,13 @@ engines:
 #    base_url : 'http://localhost:8090'
 #    number_of_results : 5
 #    timeout : 3.0
+
+# Doku engine lets you access to any Doku wiki instance:
+# A public one or a privete/corporate one.
+#  - name : ubuntuwiki
+#    engine : doku
+#    shortcut : uw
+#    base_url : 'http://doc.ubuntu-fr.org'
 
 locales:
     en : English
