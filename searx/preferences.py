@@ -166,6 +166,7 @@ class SwitchableSetting(Setting):
 
 
 class EnginesSetting(SwitchableSetting):
+
     def _post_init(self):
         super(EnginesSetting, self)._post_init()
         transformed_choices = []
@@ -191,6 +192,7 @@ class EnginesSetting(SwitchableSetting):
 
 
 class PluginsSetting(SwitchableSetting):
+
     def _post_init(self):
         super(PluginsSetting, self)._post_init()
         transformed_choices = []
@@ -225,10 +227,12 @@ class Preferences(object):
                                    'safesearch': MapSetting(settings['search']['safe_search'], map={'0': 0,
                                                                                                     '1': 1,
                                                                                                     '2': 2}),
-                                   'theme': EnumStringSetting(settings['ui']['default_theme'], choices=themes)}
+                                   'theme': EnumStringSetting(settings['ui']['default_theme'], choices=themes),
+                                   'results_on_new_tab': MapSetting(False, map={'0': False, '1': True})}
 
         self.engines = EnginesSetting('engines', choices=engines)
         self.plugins = PluginsSetting('plugins', choices=plugins)
+        self.unknown_params = {}
 
     def parse_cookies(self, input_data):
         for user_setting_name, user_setting in input_data.iteritems():
@@ -254,6 +258,8 @@ class Preferences(object):
                 enabled_categories.append(user_setting_name[len('category_'):])
             elif user_setting_name.startswith('plugin_'):
                 disabled_plugins.append(user_setting_name)
+            else:
+                self.unknown_params[user_setting_name] = user_setting
         self.key_value_settings['categories'].parse_form(enabled_categories)
         self.engines.parse_form(disabled_engines)
         self.plugins.parse_form(disabled_plugins)
@@ -268,4 +274,6 @@ class Preferences(object):
             user_setting.save(user_setting_name, resp)
         self.engines.save(resp)
         self.plugins.save(resp)
+        for k, v in self.unknown_params.items():
+            resp.set_cookie(k, v, max_age=COOKIE_MAX_AGE)
         return resp
