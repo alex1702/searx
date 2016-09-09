@@ -8,18 +8,16 @@ search:
 
 server:
     port : 8888
-    secret_key : "KwsyWjNYXSjSbAK6Uq6CM6LYZZ2N6cv6" # change this!
-    debug : False # Debug mode, only for development
-    request_timeout : 2.0 # seconds
+    bind_address : "127.0.0.1" # address to listen on
+    secret_key : "ultrasecretkey" # change this!
     base_url : "https://suche.elaon.de" # Set custom base_url. Possible values: False or "https://your.custom.host/location/"
     https_rewrite : True # Force rewrite result urls. See searx/https_rewrite.py
-    useragent_suffix : "" # suffix of searx_useragent, could contain informations like an email address to the administrator
     image_proxy : False # Proxying image results through searx
 
 ui:
     themes_path : "" # Custom ui themes path - leave it blank if you didn't change
     default_theme : oscar # ui theme
-    default_locale : "de" # Default interface locale - leave blank to detect from browser information or use codes from th$
+    default_locale : "de" # Default interface locale - leave blank to detect from browser information or use codes from the 'locales' config section
 
 
 outgoing: # communication with search engines
@@ -66,22 +64,14 @@ engines:
 
   - name : bing
     engine : bing
-    locale : de-DE 
     shortcut : bi
 
   - name : bing images
     engine : bing_images
-    locale : de-DE
     shortcut : bii
 
   - name : bing news
     engine : bing_news
-    locale : de-DE
-    shortcut : bin
-
-  - name : blekko images
-    engine : blekko_images
-    locale : de-DE
     shortcut : bin
 
   - name : bitbucket
@@ -495,7 +485,6 @@ engines:
 
   - name : vimeo
     engine : vimeo
-    locale : de-DE
     shortcut : vm
 
   - name : wolframalpha
