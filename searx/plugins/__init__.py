@@ -19,15 +19,17 @@ from searx import logger
 
 logger = logger.getChild('plugins')
 
-from searx.plugins import (https_rewrite,
+from searx.plugins import (doai_rewrite,
+                           https_rewrite,
+                           infinite_scroll,
                            open_results_on_new_tab,
                            self_info,
                            search_on_category_select,
                            tracker_url_remover,
                            vim_hotkeys)
 
-required_attrs = (('name', str),
-                  ('description', str),
+required_attrs = (('name', (str, unicode)),
+                  ('description', (str, unicode)),
                   ('default_on', bool))
 
 optional_attrs = (('js_dependencies', tuple),
@@ -61,9 +63,9 @@ class PluginStore():
             plugin.id = plugin.name.replace(' ', '_')
             self.plugins.append(plugin)
 
-    def call(self, plugin_type, request, *args, **kwargs):
+    def call(self, ordered_plugin_list, plugin_type, request, *args, **kwargs):
         ret = True
-        for plugin in request.user_plugins:
+        for plugin in ordered_plugin_list:
             if hasattr(plugin, plugin_type):
                 ret = getattr(plugin, plugin_type)(request, *args, **kwargs)
                 if not ret:
@@ -73,7 +75,9 @@ class PluginStore():
 
 
 plugins = PluginStore()
+plugins.register(doai_rewrite)
 plugins.register(https_rewrite)
+plugins.register(infinite_scroll)
 plugins.register(open_results_on_new_tab)
 plugins.register(self_info)
 plugins.register(search_on_category_select)

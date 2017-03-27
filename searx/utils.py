@@ -6,23 +6,27 @@ import re
 from babel.dates import format_date
 from codecs import getincrementalencoder
 from HTMLParser import HTMLParser
+from imp import load_source
+from os.path import splitext, join
 from random import choice
+import sys
 
 from searx.version import VERSION_STRING
+from searx.languages import language_codes
 from searx import settings
 from searx import logger
 
 
 logger = logger.getChild('utils')
 
-ua_versions = ('33.0',
-               '34.0',
-               '35.0',
-               '36.0',
-               '37.0',
-               '38.0',
-               '39.0',
-               '40.0')
+ua_versions = ('40.0',
+               '41.0',
+               '42.0',
+               '43.0',
+               '44.0',
+               '45.0',
+               '46.0',
+               '47.0')
 
 ua_os = ('Windows NT 6.3; WOW64',
          'X11; Linux x86_64',
@@ -63,7 +67,7 @@ def highlight_content(content, query):
         regex_parts = []
         for chunk in query.split():
             if len(chunk) == 1:
-                regex_parts.append(u'\W+{0}\W+'.format(re.escape(chunk)))
+                regex_parts.append(u'\\W+{0}\\W+'.format(re.escape(chunk)))
             else:
                 regex_parts.append(u'{0}'.format(re.escape(chunk)))
         query_regex = u'({0})'.format('|'.join(regex_parts))
@@ -74,6 +78,7 @@ def highlight_content(content, query):
 
 
 class HTMLTextExtractor(HTMLParser):
+
     def __init__(self):
         HTMLParser.__init__(self)
         self.result = []
@@ -170,6 +175,8 @@ def get_themes(root):
     templates_path = os.path.join(root, 'templates')
 
     themes = os.listdir(os.path.join(static_path, 'themes'))
+    if '__common__' in themes:
+        themes.remove('__common__')
     return static_path, templates_path, themes
 
 
@@ -205,7 +212,13 @@ def format_date_by_locale(date, locale_string):
     if locale_string == 'all':
         locale_string = settings['ui']['default_locale'] or 'en_US'
 
-    return format_date(date, locale=locale_string)
+    # to avoid crashing if locale is not supported by babel
+    try:
+        formatted_date = format_date(date, locale=locale_string)
+    except:
+        formatted_date = format_date(date, "YYYY-MM-dd")
+
+    return formatted_date
 
 
 def dict_subset(d, properties):
@@ -230,3 +243,60 @@ def list_get(a_list, index, default=None):
         return a_list[index]
     else:
         return default
+
+
+def get_torrent_size(filesize, filesize_multiplier):
+    try:
+        filesize = float(filesize)
+
+        if filesize_multiplier == 'TB':
+            filesize = int(filesize * 1024 * 1024 * 1024 * 1024)
+        elif filesize_multiplier == 'GB':
+            filesize = int(filesize * 1024 * 1024 * 1024)
+        elif filesize_multiplier == 'MB':
+            filesize = int(filesize * 1024 * 1024)
+        elif filesize_multiplier == 'KB':
+            filesize = int(filesize * 1024)
+        elif filesize_multiplier == 'TiB':
+            filesize = int(filesize * 1000 * 1000 * 1000 * 1000)
+        elif filesize_multiplier == 'GiB':
+            filesize = int(filesize * 1000 * 1000 * 1000)
+        elif filesize_multiplier == 'MiB':
+            filesize = int(filesize * 1000 * 1000)
+        elif filesize_multiplier == 'KiB':
+            filesize = int(filesize * 1000)
+    except:
+        filesize = None
+
+    return filesize
+
+
+def convert_str_to_int(number_str):
+    if number_str.isdigit():
+        return int(number_str)
+    else:
+        return 0
+
+
+def is_valid_lang(lang):
+    is_abbr = (len(lang) == 2)
+    if is_abbr:
+        for l in language_codes:
+            if l[0][:2] == lang.lower():
+                return (True, l[0][:2], l[1].lower())
+        return False
+    else:
+        for l in language_codes:
+            if l[1].lower() == lang.lower():
+                return (True, l[0][:2], l[1].lower())
+        return False
+
+
+def load_module(filename, module_dir):
+    modname = splitext(filename)[0]
+    if modname in sys.modules:
+        del sys.modules[modname]
+    filepath = join(module_dir, filename)
+    module = load_source(modname, filepath)
+    module.name = modname
+    return module

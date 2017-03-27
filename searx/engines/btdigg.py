@@ -11,11 +11,11 @@
 """
 
 from urlparse import urljoin
-from cgi import escape
 from urllib import quote
 from lxml import html
 from operator import itemgetter
 from searx.engines.xpath import extract_text
+from searx.utils import get_torrent_size
 
 # engine dependent config
 categories = ['videos', 'music', 'files']
@@ -50,8 +50,8 @@ def response(resp):
     for result in search_res:
         link = result.xpath('.//td[@class="torrent_name"]//a')[0]
         href = urljoin(url, link.attrib.get('href'))
-        title = escape(extract_text(link))
-        content = escape(extract_text(result.xpath('.//pre[@class="snippet"]')[0]))
+        title = extract_text(link)
+        content = extract_text(result.xpath('.//pre[@class="snippet"]')[0])
         content = "<br />".join(content.split("\n"))
 
         filesize = result.xpath('.//span[@class="attr_val"]/text()')[0].split()[0]
@@ -68,20 +68,7 @@ def response(resp):
         leech = 0
 
         # convert filesize to byte if possible
-        try:
-            filesize = float(filesize)
-
-            # convert filesize to byte
-            if filesize_multiplier == 'TB':
-                filesize = int(filesize * 1024 * 1024 * 1024 * 1024)
-            elif filesize_multiplier == 'GB':
-                filesize = int(filesize * 1024 * 1024 * 1024)
-            elif filesize_multiplier == 'MB':
-                filesize = int(filesize * 1024 * 1024)
-            elif filesize_multiplier == 'KB':
-                filesize = int(filesize * 1024)
-        except:
-            filesize = None
+        filesize = get_torrent_size(filesize, filesize_multiplier)
 
         # convert files to int if possible
         if files.isdigit():

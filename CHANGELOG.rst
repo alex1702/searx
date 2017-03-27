@@ -1,3 +1,67 @@
+0.11.0 2017.01.10
+=================
+
+- New engines
+
+  - Protein Data Bank Europe (science)
+  - Voat.co (general, social media)
+  - Online Etimology Dictionary (science)
+  - CCC tv (video, it)
+  - Searx (all categories - can rotate multiple other instances)
+- Answerer functionality (see answerer section on /preferences)
+- Local answerers
+
+  - Statistical functions
+  - Random value generator
+- Result proxy support (with `morty <https://github.com/asciimoo/morty>`__)
+- Extended time range filter
+- Improved search language support
+- Multiple engine fixes (digbt, 500px, google news, ixquick, bing, kickass, google play movies, habrahabr, yandex)
+- Minor UI improvements
+- Suggestion support for JSON engine
+- Result and query escaping fixes
+- Configurable HTTP server version
+- More robust search error handling
+- Faster webapp initialization in debug mode
+- Search module refactor
+- Translation updates
+
+
+0.10.0 2016.09.06
+=================
+
+- New engines
+
+  - Archive.is (general)
+  - INA (videos)
+  - Scanr (science)
+  - Google Scholar (science)
+  - Crossref (science)
+  - Openrepos (files)
+  - Microsoft Academic Search Engine (science)
+  - Hoogle (it)
+  - Diggbt (files)
+  - Dictzone (general - dictionary)
+  - Translated (general - translation)
+- New Plugins
+
+  - Infinite scroll on results page
+  - DOAI rewrite
+- Full theme redesign
+- Display the number of results
+- Filter searches by date range
+- Instance config API endpoint
+- Dependency version updates
+- Socks proxy support for outgoing requests
+- 404 page
+
+
+News
+~~~~
+
+@kvch joined the maintainer team
+
+
 0.9.0 2016.05.24
 ================
 
@@ -35,6 +99,7 @@
 - Translation updates
 - Multilingual autocompleter
 - Qwant autocompleter backend
+
 
 0.8.1 2015.12.22
 ================

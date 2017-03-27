@@ -27,7 +27,7 @@ class TestFlickrEngine(SearxTestCase):
         response = mock.Mock(text='{"data": []}')
         self.assertEqual(flickr.response(response), [])
 
-        json = """
+        json = r"""
         { "photos": { "page": 1, "pages": "41001", "perpage": 100, "total": "4100032",
             "photo": [
             { "id": "15751017054", "owner": "66847915@N08",
@@ -52,10 +52,10 @@ class TestFlickrEngine(SearxTestCase):
         self.assertEqual(results[0]['url'], 'https://www.flickr.com/photos/66847915@N08/15751017054')
         self.assertTrue('o.jpg' in results[0]['img_src'])
         self.assertTrue('n.jpg' in results[0]['thumbnail_src'])
-        self.assertTrue('Owner' in results[0]['content'])
+        self.assertTrue('Owner' in results[0]['author'])
         self.assertTrue('Description' in results[0]['content'])
 
-        json = """
+        json = r"""
         { "photos": { "page": 1, "pages": "41001", "perpage": 100, "total": "4100032",
             "photo": [
             { "id": "15751017054", "owner": "66847915@N08",
@@ -76,10 +76,10 @@ class TestFlickrEngine(SearxTestCase):
         self.assertEqual(results[0]['url'], 'https://www.flickr.com/photos/66847915@N08/15751017054')
         self.assertTrue('z.jpg' in results[0]['img_src'])
         self.assertTrue('z.jpg' in results[0]['thumbnail_src'])
-        self.assertTrue('Owner' in results[0]['content'])
+        self.assertTrue('Owner' in results[0]['author'])
         self.assertTrue('Description' in results[0]['content'])
 
-        json = """
+        json = r"""
         { "photos": { "page": 1, "pages": "41001", "perpage": 100, "total": "4100032",
             "photo": [
             { "id": "15751017054", "owner": "66847915@N08",
@@ -100,10 +100,10 @@ class TestFlickrEngine(SearxTestCase):
         self.assertEqual(results[0]['url'], 'https://www.flickr.com/photos/66847915@N08/15751017054')
         self.assertTrue('o.jpg' in results[0]['img_src'])
         self.assertTrue('o.jpg' in results[0]['thumbnail_src'])
-        self.assertTrue('Owner' in results[0]['content'])
+        self.assertTrue('Owner' in results[0]['author'])
         self.assertTrue('Description' in results[0]['content'])
 
-        json = """
+        json = r"""
         { "photos": { "page": 1, "pages": "41001", "perpage": 100, "total": "4100032",
             "photo": [
             { "id": "15751017054", "owner": "66847915@N08",
@@ -130,7 +130,7 @@ class TestFlickrEngine(SearxTestCase):
         self.assertEqual(type(results), list)
         self.assertEqual(len(results), 0)
 
-        json = """
+        json = r"""
         {"toto":[
             {"id":200,"name":"Artist Name",
             "link":"http:\/\/www.flickr.com\/artist\/1217","type":"artist"}
