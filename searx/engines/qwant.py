@@ -10,14 +10,17 @@
  @parse       url, title, content
 """
 
-from urllib import urlencode
-from json import loads
 from datetime import datetime
+from json import loads
+from urllib import urlencode
+
+from searx.utils import html_to_text
 
 # engine dependent config
 categories = None
 paging = True
 language_support = True
+supported_languages_url = 'https://qwant.com/region'
 
 category_to_keyword = {'general': 'web',
                        'images': 'images',
@@ -44,7 +47,16 @@ def request(query, params):
 
     # add language tag if specified
     if params['language'] != 'all':
-        params['url'] += '&locale=' + params['language'].lower()
+        if params['language'] == 'no' or params['language'].startswith('no-'):
+            params['language'] = params['language'].replace('no', 'nb', 1)
+        if params['language'].find('-') < 0:
+            # tries to get a country code from language
+            for lang in supported_languages:
+                lc = lang.split('-')
+                if params['language'] == lc[0]:
+                    params['language'] = lang
+                    break
+        params['url'] += '&locale=' + params['language'].replace('-', '_').lower()
 
     return params
 
@@ -66,9 +78,9 @@ def response(resp):
     # parse results
     for result in res.get('items', {}):
 
-        title = result['title']
+        title = html_to_text(result['title'])
         res_url = result['url']
-        content = result['desc']
+        content = html_to_text(result['desc'])
 
         if category_to_keyword.get(categories[0], '') == 'web':
             results.append({'title': title,
@@ -94,5 +106,23 @@ def response(resp):
                             'publishedDate': published_date,
                             'content': content})
 
-    # return results
     return results
+
+
+# get supported languages from their site
+def _fetch_supported_languages(resp):
+    # list of regions is embedded in page as a js object
+    response_text = resp.text
+    response_text = response_text[response_text.find('regionalisation'):]
+    response_text = response_text[response_text.find('{'):response_text.find(');')]
+
+    regions_json = loads(response_text)
+
+    supported_languages = []
+    for lang in regions_json['languages'].values():
+        if lang['code'] == 'nb':
+            lang['code'] = 'no'
+        for country in lang['countries']:
+            supported_languages.append(lang['code'] + '-' + country)
+
+    return supported_languages

@@ -127,15 +127,22 @@ class ResultContainer(object):
         self.infoboxes = []
         self.suggestions = set()
         self.answers = set()
+        self.corrections = set()
         self._number_of_results = []
+        self._ordered = False
+        self.paging = False
 
     def extend(self, engine_name, results):
         for result in list(results):
+            result['engine'] = engine_name
             if 'suggestion' in result:
                 self.suggestions.add(result['suggestion'])
                 results.remove(result)
             elif 'answer' in result:
                 self.answers.add(result['answer'])
+                results.remove(result)
+            elif 'correction' in result:
+                self.corrections.add(result['correction'])
                 results.remove(result)
             elif 'infobox' in result:
                 self._merge_infobox(result)
@@ -144,14 +151,18 @@ class ResultContainer(object):
                 self._number_of_results.append(result['number_of_results'])
                 results.remove(result)
 
-        with RLock():
-            engines[engine_name].stats['search_count'] += 1
-            engines[engine_name].stats['result_count'] += len(results)
+        if engine_name in engines:
+            with RLock():
+                engines[engine_name].stats['search_count'] += 1
+                engines[engine_name].stats['result_count'] += len(results)
 
         if not results:
             return
 
         self.results[engine_name].extend(results)
+
+        if not self.paging and engine_name in engines and engines[engine_name].paging:
+            self.paging = True
 
         for i, result in enumerate(results):
             try:
@@ -219,7 +230,7 @@ class ResultContainer(object):
             with RLock():
                 self._merged_results.append(result)
 
-    def get_ordered_results(self):
+    def order_results(self):
         for result in self._merged_results:
             score = result_score(result)
             result['score'] = score
@@ -269,8 +280,14 @@ class ResultContainer(object):
                 # update categoryIndex
                 categoryPositions[category] = {'index': len(gresults), 'count': 8}
 
-        # return gresults
-        return gresults
+        # update _merged_results
+        self._ordered = True
+        self._merged_results = gresults
+
+    def get_ordered_results(self):
+        if not self._ordered:
+            self.order_results()
+        return self._merged_results
 
     def results_length(self):
         return len(self._merged_results)
