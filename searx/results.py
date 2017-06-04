@@ -1,9 +1,13 @@
 import re
+import sys
 from collections import defaultdict
 from operator import itemgetter
 from threading import RLock
-from urlparse import urlparse, unquote
 from searx.engines import engines
+from searx.url_utils import urlparse, unquote
+
+if sys.version_info[0] == 3:
+    basestring = str
 
 CONTENT_LEN_IGNORED_CHARS_REGEX = re.compile(r'[,;:!?\./\\\\ ()-_]', re.M | re.U)
 WHITESPACE_REGEX = re.compile('( |\t|\n)+', re.M | re.U)
@@ -246,9 +250,12 @@ class ResultContainer(object):
 
         for i, res in enumerate(results):
             # FIXME : handle more than one category per engine
-            category = engines[res['engine']].categories[0] + ':' + ''\
-                if 'template' not in res\
-                else res['template']
+            res['category'] = engines[res['engine']].categories[0]
+
+            # FIXME : handle more than one category per engine
+            category = engines[res['engine']].categories[0]\
+                + ':' + res.get('template', '')\
+                + ':' + ('img_src' if 'img_src' in res or 'thumbnail' in res else '')
 
             current = None if category not in categoryPositions\
                 else categoryPositions[category]
