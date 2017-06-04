@@ -10,11 +10,9 @@
  @parse       url, title, content
 """
 
-from urlparse import urljoin
-from cgi import escape
-from urllib import urlencode
 from lxml import html
 from searx.engines.xpath import extract_text
+from searx.url_utils import urlencode, urljoin
 
 # engine dependent config
 categories = ['it']
@@ -32,8 +30,7 @@ content_xpath = './/div[@class="excerpt"]'
 
 # do search-request
 def request(query, params):
-    params['url'] = search_url.format(query=urlencode({'q': query}),
-                                      pageno=params['pageno'])
+    params['url'] = search_url.format(query=urlencode({'q': query}), pageno=params['pageno'])
 
     return params
 
@@ -48,8 +45,8 @@ def response(resp):
     for result in dom.xpath(results_xpath):
         link = result.xpath(link_xpath)[0]
         href = urljoin(url, link.attrib.get('href'))
-        title = escape(extract_text(link))
-        content = escape(extract_text(result.xpath(content_xpath)))
+        title = extract_text(link)
+        content = extract_text(result.xpath(content_xpath))
 
         # append result
         results.append({'url': href,

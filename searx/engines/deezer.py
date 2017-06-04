@@ -11,7 +11,7 @@
 """
 
 from json import loads
-from urllib import urlencode
+from searx.url_utils import urlencode
 
 # engine dependent config
 categories = ['music']
@@ -30,8 +30,7 @@ embedded_url = '<iframe scrolling="no" frameborder="0" allowTransparency="true" 
 def request(query, params):
     offset = (params['pageno'] - 1) * 25
 
-    params['url'] = search_url.format(query=urlencode({'q': query}),
-                                      offset=offset)
+    params['url'] = search_url.format(query=urlencode({'q': query}), offset=offset)
 
     return params
 
@@ -51,10 +50,11 @@ def response(resp):
             if url.startswith('http://'):
                 url = 'https' + url[4:]
 
-            content = result['artist']['name'] +\
-                " &bull; " +\
-                result['album']['title'] +\
-                " &bull; " + result['title']
+            content = u'{} - {} - {}'.format(
+                result['artist']['name'],
+                result['album']['title'],
+                result['title'])
+
             embedded = embedded_url.format(audioid=result['id'])
 
             # append result

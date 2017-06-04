@@ -9,10 +9,9 @@
  @parse        url, title, content
 """
 
-from cgi import escape
-from urllib import urlencode
-from searx.engines.xpath import extract_text
 from lxml import html
+from searx.engines.xpath import extract_text
+from searx.url_utils import urlencode
 
 # engine dependent config
 categories = ['files']
@@ -25,8 +24,7 @@ search_url = base_url + 'repository/browse/?{query}'
 
 # do search-request
 def request(query, params):
-    query = urlencode({'fdfilter': query,
-                       'fdpage': params['pageno']})
+    query = urlencode({'fdfilter': query, 'fdpage': params['pageno']})
     params['url'] = search_url.format(query=query)
     return params
 
@@ -43,7 +41,7 @@ def response(resp):
         img_src = app.xpath('.//img/@src')[0]
 
         content = extract_text(app.xpath('./p')[0])
-        content = escape(content.replace(title, '', 1).strip())
+        content = content.replace(title, '', 1).strip()
 
         results.append({'url': url,
                         'title': title,

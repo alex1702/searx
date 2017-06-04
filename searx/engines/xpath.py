@@ -1,13 +1,13 @@
 from lxml import html
-from urllib import urlencode, unquote
-from urlparse import urlparse, urljoin
 from lxml.etree import _ElementStringResult, _ElementUnicodeResult
 from searx.utils import html_to_text
+from searx.url_utils import unquote, urlencode, urljoin, urlparse
 
 search_url = None
 url_xpath = None
 content_xpath = None
 title_xpath = None
+paging = False
 suggestion_xpath = ''
 results_xpath = ''
 
@@ -31,8 +31,6 @@ if xpath_results is a string element, then it's already done
 def extract_text(xpath_results):
     if type(xpath_results) == list:
         # it's list of result : concat everything using recursive call
-        if not xpath_results:
-            raise Exception('Empty url resultset')
         result = ''
         for e in xpath_results:
             result = result + extract_text(e)
@@ -42,16 +40,20 @@ def extract_text(xpath_results):
         return ''.join(xpath_results)
     else:
         # it's a element
-        return html_to_text(xpath_results.text_content()).strip()
+        text = html.tostring(xpath_results, encoding='unicode', method='text', with_tail=False)
+        text = text.strip().replace('\n', ' ')
+        return ' '.join(text.split())
 
 
 def extract_url(xpath_results, search_url):
+    if xpath_results == []:
+        raise Exception('Empty url resultset')
     url = extract_text(xpath_results)
 
     if url.startswith('//'):
         # add http or https to this kind of url //example.com/
         parsed_search_url = urlparse(search_url)
-        url = parsed_search_url.scheme + url
+        url = u'{0}:{1}'.format(parsed_search_url.scheme, url)
     elif url.startswith('/'):
         # fix relative url to the search engine
         url = urljoin(search_url, url)
@@ -101,8 +103,8 @@ def response(resp):
     if results_xpath:
         for result in dom.xpath(results_xpath):
             url = extract_url(result.xpath(url_xpath), search_url)
-            title = extract_text(result.xpath(title_xpath)[0])
-            content = extract_text(result.xpath(content_xpath)[0])
+            title = extract_text(result.xpath(title_xpath))
+            content = extract_text(result.xpath(content_xpath))
             results.append({'url': url, 'title': title, 'content': content})
     else:
         for url, title, content in zip(

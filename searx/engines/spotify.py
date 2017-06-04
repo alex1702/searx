@@ -11,7 +11,7 @@
 """
 
 from json import loads
-from urllib import urlencode
+from searx.url_utils import urlencode
 
 # engine dependent config
 categories = ['music']
@@ -29,8 +29,7 @@ embedded_url = '<iframe data-src="https://embed.spotify.com/?uri=spotify:track:{
 def request(query, params):
     offset = (params['pageno'] - 1) * 20
 
-    params['url'] = search_url.format(query=urlencode({'q': query}),
-                                      offset=offset)
+    params['url'] = search_url.format(query=urlencode({'q': query}), offset=offset)
 
     return params
 
@@ -46,10 +45,11 @@ def response(resp):
         if result['type'] == 'track':
             title = result['name']
             url = result['external_urls']['spotify']
-            content = result['artists'][0]['name'] +\
-                " &bull; " +\
-                result['album']['name'] +\
-                " &bull; " + result['name']
+            content = u'{} - {} - {}'.format(
+                result['artists'][0]['name'],
+                result['album']['name'],
+                result['name'])
+
             embedded = embedded_url.format(audioid=result['id'])
 
             # append result

@@ -11,7 +11,6 @@
 """
 
 from json import loads
-from searx.utils import searx_useragent
 
 # engine dependent config
 categories = ['map']
@@ -27,9 +26,6 @@ result_base_url = 'https://openstreetmap.org/{osm_type}/{osm_id}'
 def request(query, params):
     params['url'] = base_url + search_string.format(query=query)
 
-    # using searx User-Agent
-    params['headers']['User-Agent'] = searx_useragent()
-
     return params
 
 
@@ -43,7 +39,7 @@ def response(resp):
         if 'display_name' not in r:
             continue
 
-        title = r['display_name']
+        title = r['display_name'] or u''
         osm_type = r.get('osm_type', r.get('type'))
         url = result_base_url.format(osm_type=osm_type,
                                      osm_id=r['osm_id'])

@@ -10,7 +10,7 @@ class TestQwantEngine(SearxTestCase):
         query = 'test_query'
         dicto = defaultdict(dict)
         dicto['pageno'] = 0
-        dicto['language'] = 'fr_FR'
+        dicto['language'] = 'fr-FR'
         qwant.categories = ['']
         params = qwant.request(query, dicto)
         self.assertIn('url', params)
@@ -24,6 +24,11 @@ class TestQwantEngine(SearxTestCase):
         params = qwant.request(query, dicto)
         self.assertFalse('fr' in params['url'])
         self.assertIn('news', params['url'])
+
+        qwant.supported_languages = ['en', 'fr-FR', 'fr-CA']
+        dicto['language'] = 'fr'
+        params = qwant.request(query, dicto)
+        self.assertIn('fr_fr', params['url'])
 
     def test_response(self):
         self.assertRaises(AttributeError, qwant.response, None)
@@ -315,3 +320,19 @@ class TestQwantEngine(SearxTestCase):
         results = qwant.response(response)
         self.assertEqual(type(results), list)
         self.assertEqual(len(results), 0)
+
+    def test_fetch_supported_languages(self):
+        page = """some code...
+        config_set('project.regionalisation', {"continents":{},"languages":
+        {"de":{"code":"de","name":"Deutsch","countries":["DE","CH","AT"]},
+        "it":{"code":"it","name":"Italiano","countries":["IT","CH"]}}});
+        some more code..."""
+        response = mock.Mock(text=page)
+        languages = qwant._fetch_supported_languages(response)
+        self.assertEqual(type(languages), list)
+        self.assertEqual(len(languages), 5)
+        self.assertIn('de-DE', languages)
+        self.assertIn('de-CH', languages)
+        self.assertIn('de-AT', languages)
+        self.assertIn('it-IT', languages)
+        self.assertIn('it-CH', languages)

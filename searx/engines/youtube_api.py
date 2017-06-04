@@ -9,8 +9,8 @@
 # @parse       url, title, content, publishedDate, thumbnail, embedded
 
 from json import loads
-from urllib import urlencode
 from dateutil import parser
+from searx.url_utils import urlencode
 
 # engine dependent config
 categories = ['videos', 'music']
@@ -36,7 +36,7 @@ def request(query, params):
 
     # add language tag if specified
     if params['language'] != 'all':
-        params['url'] += '&relevanceLanguage=' + params['language'].split('_')[0]
+        params['url'] += '&relevanceLanguage=' + params['language'].split('-')[0]
 
     return params
 

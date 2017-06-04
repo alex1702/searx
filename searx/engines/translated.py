@@ -9,8 +9,11 @@
  @parse       url, title, content
 """
 import re
-from cgi import escape
+from sys import version_info
 from searx.utils import is_valid_lang
+
+if version_info[0] == 3:
+    unicode = str
 
 categories = ['general']
 url = u'http://api.mymemory.translated.net/get?q={query}&langpair={from_lang}|{to_lang}{key}'
@@ -52,14 +55,14 @@ def request(query, params):
 def response(resp):
     results = []
     results.append({
-        'url': escape(web_url.format(
+        'url': web_url.format(
             from_lang=resp.search_params['from_lang'][2],
             to_lang=resp.search_params['to_lang'][2],
-            query=resp.search_params['query'])),
-        'title': escape('[{0}-{1}] {2}'.format(
+            query=resp.search_params['query']),
+        'title': '[{0}-{1}] {2}'.format(
             resp.search_params['from_lang'][1],
             resp.search_params['to_lang'][1],
-            resp.search_params['query'])),
-        'content': escape(resp.json()['responseData']['translatedText'])
+            resp.search_params['query']),
+        'content': resp.json()['responseData']['translatedText']
     })
     return results

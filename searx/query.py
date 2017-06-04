@@ -21,12 +21,18 @@ from searx.languages import language_codes
 from searx.engines import (
     categories, engines, engine_shortcuts
 )
-import string
 import re
+import string
+import sys
+
+if sys.version_info[0] == 3:
+    unicode = str
+
+VALID_LANGUAGE_CODE = re.compile(r'^[a-z]{2,3}(-[a-zA-Z]{2})?$')
 
 
-class Query(object):
-    """parse query"""
+class RawTextQuery(object):
+    """parse raw text query (the value from the html input)"""
 
     def __init__(self, query, disabled_engines):
         self.query = query
@@ -66,26 +72,34 @@ class Query(object):
 
             # this force a language
             if query_part[0] == ':':
-                lang = query_part[1:].lower()
+                lang = query_part[1:].lower().replace('_', '-')
+
+                # user may set a valid, yet not selectable language
+                if VALID_LANGUAGE_CODE.match(lang):
+                    self.languages.append(lang)
+                    parse_next = True
 
                 # check if any language-code is equal with
                 # declared language-codes
                 for lc in language_codes:
-                    lang_id, lang_name, country = map(str.lower, lc)
+                    lang_id, lang_name, country, english_name = map(unicode.lower, lc)
 
                     # if correct language-code is found
                     # set it as new search-language
                     if lang == lang_id\
                        or lang_id.startswith(lang)\
                        or lang == lang_name\
-                       or lang.replace('_', ' ') == country:
+                       or lang == english_name\
+                       or lang.replace('-', ' ') == country:
                         parse_next = True
-                        self.languages.append(lang)
-                        break
+                        self.languages.append(lang_id)
+                        # to ensure best match (first match is not necessarily the best one)
+                        if lang == lang_id:
+                            break
 
             # this force a engine or category
             if query_part[0] == '!' or query_part[0] == '?':
-                prefix = query_part[1:].replace('_', ' ')
+                prefix = query_part[1:].replace('-', ' ').replace('_', ' ')
 
                 # check if prefix is equal with engine shortcut
                 if prefix in engine_shortcuts:
@@ -130,3 +144,19 @@ class Query(object):
     def getFullQuery(self):
         # get full querry including whitespaces
         return string.join(self.query_parts, '')
+
+
+class SearchQuery(object):
+    """container for all the search parameters (query, language, etc...)"""
+
+    def __init__(self, query, engines, categories, lang, safesearch, pageno, time_range):
+        self.query = query.encode('utf-8')
+        self.engines = engines
+        self.categories = categories
+        self.lang = lang
+        self.safesearch = safesearch
+        self.pageno = pageno
+        self.time_range = time_range
+
+    def __str__(self):
+        return str(self.query) + ";" + str(self.engines)

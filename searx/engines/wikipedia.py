@@ -11,11 +11,12 @@
 """
 
 from json import loads
-from urllib import urlencode, quote
+from lxml.html import fromstring
+from searx.url_utils import quote, urlencode
 
 # search-url
-base_url = 'https://{language}.wikipedia.org/'
-search_postfix = 'w/api.php?'\
+base_url = u'https://{language}.wikipedia.org/'
+search_url = base_url + u'w/api.php?'\
     'action=query'\
     '&format=json'\
     '&{query}'\
@@ -24,25 +25,27 @@ search_postfix = 'w/api.php?'\
     '&explaintext'\
     '&pithumbsize=300'\
     '&redirects'
+supported_languages_url = 'https://meta.wikimedia.org/wiki/List_of_Wikipedias'
 
 
 # set language in base_url
 def url_lang(lang):
-    if lang == 'all':
+    lang = lang.split('-')[0]
+    if lang == 'all' or lang not in supported_languages:
         language = 'en'
     else:
-        language = lang.split('_')[0]
+        language = lang
 
-    return base_url.format(language=language)
+    return language
 
 
 # do search-request
 def request(query, params):
     if query.islower():
-        query += '|' + query.title()
+        query = u'{0}|{1}'.format(query.decode('utf-8'), query.decode('utf-8').title()).encode('utf-8')
 
-    params['url'] = url_lang(params['language']) \
-        + search_postfix.format(query=urlencode({'titles': query}))
+    params['url'] = search_url.format(query=urlencode({'titles': query}),
+                                      language=url_lang(params['language']))
 
     return params
 
@@ -74,7 +77,7 @@ def extract_first_paragraph(content, title, image):
 def response(resp):
     results = []
 
-    search_result = loads(resp.content)
+    search_result = loads(resp.text)
 
     # wikipedia article's unique id
     # first valid id is assumed to be the requested article
@@ -95,11 +98,9 @@ def response(resp):
     extract = page.get('extract')
 
     summary = extract_first_paragraph(extract, title, image)
-    if not summary:
-        return []
 
     # link to wikipedia article
-    wikipedia_link = url_lang(resp.search_params['language']) \
+    wikipedia_link = base_url.format(language=url_lang(resp.search_params['language'])) \
         + 'wiki/' + quote(title.replace(' ', '_').encode('utf8'))
 
     results.append({'url': wikipedia_link, 'title': title})
@@ -111,3 +112,24 @@ def response(resp):
                     'urls': [{'title': 'Wikipedia', 'url': wikipedia_link}]})
 
     return results
+
+
+# get supported languages from their site
+def _fetch_supported_languages(resp):
+    supported_languages = {}
+    dom = fromstring(resp.text)
+    tables = dom.xpath('//table[contains(@class,"sortable")]')
+    for table in tables:
+        # exclude header row
+        trs = table.xpath('.//tr')[1:]
+        for tr in trs:
+            td = tr.xpath('./td')
+            code = td[3].xpath('./a')[0].text
+            name = td[2].xpath('./a')[0].text
+            english_name = td[1].xpath('./a')[0].text
+            articles = int(td[4].xpath('./a/b')[0].text.replace(',', ''))
+            # exclude languages with too few articles
+            if articles >= 100:
+                supported_languages[code] = {"name": name, "english_name": english_name, "articles": articles}
+
+    return supported_languages

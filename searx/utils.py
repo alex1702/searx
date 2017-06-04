@@ -1,18 +1,32 @@
-import cStringIO
 import csv
 import os
 import re
 
 from babel.dates import format_date
 from codecs import getincrementalencoder
-from HTMLParser import HTMLParser
+from imp import load_source
+from os.path import splitext, join
 from random import choice
+import sys
 
 from searx.version import VERSION_STRING
 from searx.languages import language_codes
 from searx import settings
 from searx import logger
 
+try:
+    from cStringIO import StringIO
+except:
+    from io import StringIO
+
+try:
+    from HTMLParser import HTMLParser
+except:
+    from html.parser import HTMLParser
+
+if sys.version_info[0] == 3:
+    unichr = chr
+    unicode = str
 
 logger = logger.getChild('utils')
 
@@ -137,7 +151,7 @@ class UnicodeWriter:
 
     def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
         # Redirect output to a queue
-        self.queue = cStringIO.StringIO()
+        self.queue = StringIO()
         self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
         self.stream = f
         self.encoder = getincrementalencoder(encoding)()
@@ -149,14 +163,13 @@ class UnicodeWriter:
                 unicode_row.append(col.encode('utf-8').strip())
             else:
                 unicode_row.append(col)
-        self.writer.writerow(unicode_row)
+        self.writer.writerow([x.decode('utf-8') if hasattr(x, 'decode') else x for x in unicode_row])
         # Fetch UTF-8 output from the queue ...
-        data = self.queue.getvalue()
-        data = data.decode("utf-8")
+        data = self.queue.getvalue().strip('\x00')
         # ... and reencode it into the target encoding
         data = self.encoder.encode(data)
         # write to the target stream
-        self.stream.write(data)
+        self.stream.write(data.decode('utf-8'))
         # empty queue
         self.queue.truncate(0)
 
@@ -165,35 +178,39 @@ class UnicodeWriter:
             self.writerow(row)
 
 
-def get_themes(root):
+def get_resources_directory(searx_directory, subdirectory, resources_directory):
+    if not resources_directory:
+        resources_directory = os.path.join(searx_directory, subdirectory)
+    if not os.path.isdir(resources_directory):
+        raise Exception(directory + " is not a directory")
+    return resources_directory
+
+
+def get_themes(templates_path):
     """Returns available themes list."""
-
-    static_path = os.path.join(root, 'static')
-    templates_path = os.path.join(root, 'templates')
-
-    themes = os.listdir(os.path.join(static_path, 'themes'))
-    return static_path, templates_path, themes
+    themes = os.listdir(templates_path)
+    if '__common__' in themes:
+        themes.remove('__common__')
+    return themes
 
 
-def get_static_files(base_path):
-    base_path = os.path.join(base_path, 'static')
+def get_static_files(static_path):
     static_files = set()
-    base_path_length = len(base_path) + 1
-    for directory, _, files in os.walk(base_path):
+    static_path_length = len(static_path) + 1
+    for directory, _, files in os.walk(static_path):
         for filename in files:
-            f = os.path.join(directory[base_path_length:], filename)
+            f = os.path.join(directory[static_path_length:], filename)
             static_files.add(f)
     return static_files
 
 
-def get_result_templates(base_path):
-    base_path = os.path.join(base_path, 'templates')
+def get_result_templates(templates_path):
     result_templates = set()
-    base_path_length = len(base_path) + 1
-    for directory, _, files in os.walk(base_path):
+    templates_path_length = len(templates_path) + 1
+    for directory, _, files in os.walk(templates_path):
         if directory.endswith('result_templates'):
             for filename in files:
-                f = os.path.join(directory[base_path_length:], filename)
+                f = os.path.join(directory[templates_path_length:], filename)
                 result_templates.add(f)
     return result_templates
 
@@ -226,7 +243,7 @@ def dict_subset(d, properties):
 
 def prettify_url(url, max_length=74):
     if len(url) > max_length:
-        chunk_len = max_length / 2 + 1
+        chunk_len = int(max_length / 2 + 1)
         return u'{0}[...]{1}'.format(url[:chunk_len], url[-chunk_len:])
     else:
         return url
@@ -252,10 +269,25 @@ def get_torrent_size(filesize, filesize_multiplier):
             filesize = int(filesize * 1024 * 1024)
         elif filesize_multiplier == 'KB':
             filesize = int(filesize * 1024)
+        elif filesize_multiplier == 'TiB':
+            filesize = int(filesize * 1000 * 1000 * 1000 * 1000)
+        elif filesize_multiplier == 'GiB':
+            filesize = int(filesize * 1000 * 1000 * 1000)
+        elif filesize_multiplier == 'MiB':
+            filesize = int(filesize * 1000 * 1000)
+        elif filesize_multiplier == 'KiB':
+            filesize = int(filesize * 1000)
     except:
         filesize = None
 
     return filesize
+
+
+def convert_str_to_int(number_str):
+    if number_str.isdigit():
+        return int(number_str)
+    else:
+        return 0
 
 
 def is_valid_lang(lang):
@@ -270,3 +302,13 @@ def is_valid_lang(lang):
             if l[1].lower() == lang.lower():
                 return (True, l[0][:2], l[1].lower())
         return False
+
+
+def load_module(filename, module_dir):
+    modname = splitext(filename)[0]
+    if modname in sys.modules:
+        del sys.modules[modname]
+    filepath = join(module_dir, filename)
+    module = load_source(modname, filepath)
+    module.name = modname
+    return module

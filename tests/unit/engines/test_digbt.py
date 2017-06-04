@@ -21,14 +21,16 @@ class TestDigBTEngine(SearxTestCase):
         self.assertRaises(AttributeError, digbt.response, '')
         self.assertRaises(AttributeError, digbt.response, '[]')
 
-        response = mock.Mock(content='<html></html>')
+        response = mock.Mock(text='<html></html>')
         self.assertEqual(digbt.response(response), [])
 
         html = """
         <table class="table">
             <tr><td class="x-item">
             <div>
-                <a title="The Big Bang Theory" class="title" href="/The-Big-Bang-Theory-d2.html">The Big Bang Theory</a>
+                <a title="The Big Bang Theory" class="title" href="/The-Big-Bang-Theory-d2.html">
+                    The Big <span class="highlight">Bang</span> Theory
+                </a>
                 <span class="ctime"><span style="color:red;">4 hours ago</span></span>
             </div>
             <div class="files">
@@ -48,7 +50,7 @@ class TestDigBTEngine(SearxTestCase):
             </td></tr>
         </table>
         """
-        response = mock.Mock(content=html)
+        response = mock.Mock(text=html.encode('utf-8'))
         results = digbt.response(response)
         self.assertEqual(type(results), list)
         self.assertEqual(len(results), 1)

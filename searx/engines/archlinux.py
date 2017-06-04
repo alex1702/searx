@@ -11,11 +11,9 @@
  @parse        url, title
 """
 
-from urlparse import urljoin
-from cgi import escape
-from urllib import urlencode
 from lxml import html
 from searx.engines.xpath import extract_text
+from searx.url_utils import urlencode, urljoin
 
 # engine dependent config
 categories = ['it']
@@ -30,8 +28,8 @@ xpath_link = './/div[@class="mw-search-result-heading"]/a'
 
 # cut 'en' from 'en_US', 'de' from 'de_CH', and so on
 def locale_to_lang_code(locale):
-    if locale.find('_') >= 0:
-        locale = locale.split('_')[0]
+    if locale.find('-') >= 0:
+        locale = locale.split('-')[0]
     return locale
 
 
@@ -96,6 +94,7 @@ main_langs = {
     'uk': 'Українська',
     'zh': '简体中文'
 }
+supported_languages = dict(lang_urls, **main_langs)
 
 
 # do search-request
@@ -135,7 +134,7 @@ def response(resp):
     for result in dom.xpath(xpath_results):
         link = result.xpath(xpath_link)[0]
         href = urljoin(base_url, link.attrib.get('href'))
-        title = escape(extract_text(link))
+        title = extract_text(link)
 
         results.append({'url': href,
                         'title': title})

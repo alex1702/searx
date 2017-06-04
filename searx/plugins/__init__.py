@@ -14,8 +14,11 @@ along with searx. If not, see < http://www.gnu.org/licenses/ >.
 
 (C) 2015 by Adam Tauber, <asciimoo@gmail.com>
 '''
-from sys import exit
+from sys import exit, version_info
 from searx import logger
+
+if version_info[0] == 3:
+    unicode = str
 
 logger = logger.getChild('plugins')
 
@@ -63,9 +66,9 @@ class PluginStore():
             plugin.id = plugin.name.replace(' ', '_')
             self.plugins.append(plugin)
 
-    def call(self, plugin_type, request, *args, **kwargs):
+    def call(self, ordered_plugin_list, plugin_type, request, *args, **kwargs):
         ret = True
-        for plugin in request.user_plugins:
+        for plugin in ordered_plugin_list:
             if hasattr(plugin, plugin_type):
                 ret = getattr(plugin, plugin_type)(request, *args, **kwargs)
                 if not ret:

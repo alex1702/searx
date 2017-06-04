@@ -23,7 +23,7 @@ class Setting(object):
     def __init__(self, default_value, **kwargs):
         super(Setting, self).__init__()
         self.value = default_value
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             setattr(self, key, value)
 
         self._post_init()
@@ -38,7 +38,7 @@ class Setting(object):
         return self.value
 
     def save(self, name, resp):
-        resp.set_cookie(name, bytes(self.value), max_age=COOKIE_MAX_AGE)
+        resp.set_cookie(name, self.value, max_age=COOKIE_MAX_AGE)
 
 
 class StringSetting(Setting):
@@ -49,28 +49,32 @@ class StringSetting(Setting):
 class EnumStringSetting(Setting):
     """Setting of a value which can only come from the given choices"""
 
+    def _validate_selection(self, selection):
+        if selection not in self.choices:
+            raise ValidationException('Invalid value: "{0}"'.format(selection))
+
     def _post_init(self):
         if not hasattr(self, 'choices'):
             raise MissingArgumentException('Missing argument: choices')
-
-        if self.value != '' and self.value not in self.choices:
-            raise ValidationException('Invalid default value: {0}'.format(self.value))
+        self._validate_selection(self.value)
 
     def parse(self, data):
-        if data not in self.choices and data != self.value:
-            raise ValidationException('Invalid choice: {0}'.format(data))
+        self._validate_selection(data)
         self.value = data
 
 
 class MultipleChoiceSetting(EnumStringSetting):
     """Setting of values which can only come from the given choices"""
 
+    def _validate_selections(self, selections):
+        for item in selections:
+            if item not in self.choices:
+                raise ValidationException('Invalid value: "{0}"'.format(selections))
+
     def _post_init(self):
         if not hasattr(self, 'choices'):
             raise MissingArgumentException('Missing argument: choices')
-        for item in self.value:
-            if item not in self.choices:
-                raise ValidationException('Invalid default value: {0}'.format(self.value))
+        self._validate_selections(self.value)
 
     def parse(self, data):
         if data == '':
@@ -78,9 +82,7 @@ class MultipleChoiceSetting(EnumStringSetting):
             return
 
         elements = data.split(',')
-        for item in elements:
-            if item not in self.choices:
-                raise ValidationException('Invalid choice: {0}'.format(item))
+        self._validate_selections(elements)
         self.value = elements
 
     def parse_form(self, data):
@@ -91,6 +93,27 @@ class MultipleChoiceSetting(EnumStringSetting):
 
     def save(self, name, resp):
         resp.set_cookie(name, ','.join(self.value), max_age=COOKIE_MAX_AGE)
+
+
+class SearchLanguageSetting(EnumStringSetting):
+    """Available choices may change, so user's value may not be in choices anymore"""
+
+    def parse(self, data):
+        if data not in self.choices and data != self.value:
+            # hack to give some backwards compatibility with old language cookies
+            data = str(data).replace('_', '-')
+            lang = data.split('-')[0]
+            if data in self.choices:
+                pass
+            elif lang in self.choices:
+                data = lang
+            elif data == 'nb-NO':
+                data = 'no-NO'
+            elif data == 'ar-XA':
+                data = 'ar-SA'
+            else:
+                data = self.value
+        self.value = data
 
 
 class MapSetting(Setting):
@@ -109,7 +132,8 @@ class MapSetting(Setting):
         self.key = data
 
     def save(self, name, resp):
-        resp.set_cookie(name, bytes(self.key), max_age=COOKIE_MAX_AGE)
+        if hasattr(self, 'key'):
+            resp.set_cookie(name, self.key, max_age=COOKIE_MAX_AGE)
 
 
 class SwitchableSetting(Setting):
@@ -170,7 +194,7 @@ class EnginesSetting(SwitchableSetting):
     def _post_init(self):
         super(EnginesSetting, self)._post_init()
         transformed_choices = []
-        for engine_name, engine in self.choices.iteritems():
+        for engine_name, engine in self.choices.items():
             for category in engine.categories:
                 transformed_choice = dict()
                 transformed_choice['default_on'] = not engine.disabled
@@ -214,11 +238,12 @@ class Preferences(object):
         super(Preferences, self).__init__()
 
         self.key_value_settings = {'categories': MultipleChoiceSetting(['general'], choices=categories),
-                                   'language': EnumStringSetting('all', choices=LANGUAGE_CODES),
+                                   'language': SearchLanguageSetting(settings['search']['language'],
+                                                                     choices=LANGUAGE_CODES),
                                    'locale': EnumStringSetting(settings['ui']['default_locale'],
-                                                               choices=settings['locales'].keys()),
+                                                               choices=list(settings['locales'].keys()) + ['']),
                                    'autocomplete': EnumStringSetting(settings['search']['autocomplete'],
-                                                                     choices=autocomplete.backends.keys()),
+                                                                     choices=list(autocomplete.backends.keys()) + ['']),
                                    'image_proxy': MapSetting(settings['server']['image_proxy'],
                                                              map={'': settings['server']['image_proxy'],
                                                                   '0': False,
@@ -235,7 +260,7 @@ class Preferences(object):
         self.unknown_params = {}
 
     def parse_cookies(self, input_data):
-        for user_setting_name, user_setting in input_data.iteritems():
+        for user_setting_name, user_setting in input_data.items():
             if user_setting_name in self.key_value_settings:
                 self.key_value_settings[user_setting_name].parse(user_setting)
             elif user_setting_name == 'disabled_engines':
@@ -249,7 +274,7 @@ class Preferences(object):
         disabled_engines = []
         enabled_categories = []
         disabled_plugins = []
-        for user_setting_name, user_setting in input_data.iteritems():
+        for user_setting_name, user_setting in input_data.items():
             if user_setting_name in self.key_value_settings:
                 self.key_value_settings[user_setting_name].parse(user_setting)
             elif user_setting_name.startswith('engine_'):
@@ -270,7 +295,7 @@ class Preferences(object):
             return self.key_value_settings[user_setting_name].get_value()
 
     def save(self, resp):
-        for user_setting_name, user_setting in self.key_value_settings.iteritems():
+        for user_setting_name, user_setting in self.key_value_settings.items():
             user_setting.save(user_setting_name, resp)
         self.engines.save(resp)
         self.plugins.save(resp)

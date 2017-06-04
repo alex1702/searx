@@ -11,10 +11,9 @@
  @parse       url, title, content, suggestion
 """
 
-from urllib import urlencode
-from urlparse import unquote
 from lxml import html
 from searx.engines.xpath import extract_text, extract_url
+from searx.url_utils import unquote, urlencode
 
 # engine dependent config
 categories = ['general']
@@ -26,6 +25,8 @@ time_range_support = True
 base_url = 'https://search.yahoo.com/'
 search_url = 'search?{query}&b={offset}&fl=1&vl=lang_{lang}'
 search_url_with_time = 'search?{query}&b={offset}&fl=1&vl=lang_{lang}&age={age}&btf={btf}&fr2=time'
+
+supported_languages_url = 'https://search.yahoo.com/web/advanced'
 
 # specific xpath variables
 results_xpath = "//div[contains(concat(' ', normalize-space(@class), ' '), ' Sr ')]"
@@ -72,11 +73,20 @@ def _get_url(query, offset, language, time_range):
 def _get_language(params):
     if params['language'] == 'all':
         return 'en'
-    return params['language'].split('_')[0]
+    elif params['language'][:2] == 'zh':
+        if params['language'] == 'zh' or params['language'] == 'zh-CH':
+            return 'szh'
+        else:
+            return 'tzh'
+    else:
+        return params['language'].split('-')[0]
 
 
 # do search-request
 def request(query, params):
+    if params['time_range'] and params['time_range'] not in time_range_dict:
+        return params
+
     offset = (params['pageno'] - 1) * 10 + 1
     language = _get_language(params)
 
@@ -129,3 +139,15 @@ def response(resp):
 
     # return results
     return results
+
+
+# get supported languages from their site
+def _fetch_supported_languages(resp):
+    supported_languages = []
+    dom = html.fromstring(resp.text)
+    options = dom.xpath('//div[@id="yschlang"]/span/label/input')
+    for option in options:
+        code = option.xpath('./@value')[0][5:].replace('_', '-')
+        supported_languages.append(code)
+
+    return supported_languages

@@ -1,3 +1,55 @@
+0.12.0 2017.06.04
+=================
+
+- Python3 compatibility
+- New engines
+
+  - 1337x.to (files, music, video)
+  - Semantic Scholar (science)
+  - Library Genesis (general)
+  - Framalibre (IT)
+  - Free Software Directory (IT)
+- More compact result UI (oscar theme)
+- Configurable static content and template path
+- Spelling suggestions
+- Multiple engine fixes (duckduckgo, bing, swisscows, yahoo news, bing news, twitter, bing images)
+- Reduced static image size
+- Docker updates
+- Translation updates
+
+
+Special thanks to `NLNet <https://nlnet.nl>`__ for sponsoring multiple features of this release.
+
+
+0.11.0 2017.01.10
+=================
+
+- New engines
+
+  - Protein Data Bank Europe (science)
+  - Voat.co (general, social media)
+  - Online Etimology Dictionary (science)
+  - CCC tv (video, it)
+  - Searx (all categories - can rotate multiple other instances)
+- Answerer functionality (see answerer section on /preferences)
+- Local answerers
+
+  - Statistical functions
+  - Random value generator
+- Result proxy support (with `morty <https://github.com/asciimoo/morty>`__)
+- Extended time range filter
+- Improved search language support
+- Multiple engine fixes (digbt, 500px, google news, ixquick, bing, kickass, google play movies, habrahabr, yandex)
+- Minor UI improvements
+- Suggestion support for JSON engine
+- Result and query escaping fixes
+- Configurable HTTP server version
+- More robust search error handling
+- Faster webapp initialization in debug mode
+- Search module refactor
+- Translation updates
+
+
 0.10.0 2016.09.06
 =================
 

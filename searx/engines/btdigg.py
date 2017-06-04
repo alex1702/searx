@@ -10,12 +10,10 @@
  @parse       url, title, content, seed, leech, magnetlink
 """
 
-from urlparse import urljoin
-from cgi import escape
-from urllib import quote
 from lxml import html
 from operator import itemgetter
 from searx.engines.xpath import extract_text
+from searx.url_utils import quote, urljoin
 from searx.utils import get_torrent_size
 
 # engine dependent config
@@ -39,7 +37,7 @@ def request(query, params):
 def response(resp):
     results = []
 
-    dom = html.fromstring(resp.content)
+    dom = html.fromstring(resp.text)
 
     search_res = dom.xpath('//div[@id="search_res"]/table/tr')
 
@@ -51,8 +49,8 @@ def response(resp):
     for result in search_res:
         link = result.xpath('.//td[@class="torrent_name"]//a')[0]
         href = urljoin(url, link.attrib.get('href'))
-        title = escape(extract_text(link))
-        content = escape(extract_text(result.xpath('.//pre[@class="snippet"]')[0]))
+        title = extract_text(link)
+        content = extract_text(result.xpath('.//pre[@class="snippet"]')[0])
         content = "<br />".join(content.split("\n"))
 
         filesize = result.xpath('.//span[@class="attr_val"]/text()')[0].split()[0]

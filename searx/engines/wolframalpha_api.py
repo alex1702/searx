@@ -8,8 +8,8 @@
 # @stable      yes
 # @parse       url, infobox
 
-from urllib import urlencode
 from lxml import etree
+from searx.url_utils import urlencode
 
 # search-url
 search_url = 'https://api.wolframalpha.com/v2/query?appid={api_key}&{query}'
@@ -18,10 +18,10 @@ api_key = ''  # defined in settings.yml
 
 # xpath variables
 failure_xpath = '/queryresult[attribute::success="false"]'
-answer_xpath = '//pod[attribute::primary="true"]/subpod/plaintext'
 input_xpath = '//pod[starts-with(attribute::id, "Input")]/subpod/plaintext'
 pods_xpath = '//pod'
 subpods_xpath = './subpod'
+pod_primary_xpath = './@primary'
 pod_id_xpath = './@id'
 pod_title_xpath = './@title'
 plaintext_xpath = './plaintext'
@@ -37,8 +37,7 @@ image_pods = {'VisualRepresentation',
 
 # do search-request
 def request(query, params):
-    params['url'] = search_url.format(query=urlencode({'input': query}),
-                                      api_key=api_key)
+    params['url'] = search_url.format(query=urlencode({'input': query}), api_key=api_key)
     params['headers']['Referer'] = site_url.format(query=urlencode({'i': query}))
 
     return params
@@ -56,7 +55,7 @@ def replace_pua_chars(text):
                  u'\uf74e': 'i',        # imaginary number
                  u'\uf7d9': '='}        # equals sign
 
-    for k, v in pua_chars.iteritems():
+    for k, v in pua_chars.items():
         text = text.replace(k, v)
 
     return text
@@ -66,7 +65,7 @@ def replace_pua_chars(text):
 def response(resp):
     results = []
 
-    search_results = etree.XML(resp.content)
+    search_results = etree.XML(resp.text)
 
     # return empty array if there are no results
     if search_results.xpath(failure_xpath):
@@ -75,13 +74,15 @@ def response(resp):
     try:
         infobox_title = search_results.xpath(input_xpath)[0].text
     except:
-        infobox_title = None
+        infobox_title = ""
 
     pods = search_results.xpath(pods_xpath)
     result_chunks = []
+    result_content = ""
     for pod in pods:
         pod_id = pod.xpath(pod_id_xpath)[0]
         pod_title = pod.xpath(pod_title_xpath)[0]
+        pod_is_result = pod.xpath(pod_primary_xpath)
 
         subpods = pod.xpath(subpods_xpath)
         if not subpods:
@@ -93,6 +94,10 @@ def response(resp):
             image = subpod.xpath(image_xpath)
 
             if content and pod_id not in image_pods:
+
+                if pod_is_result or not result_content:
+                    if pod_id != "Input":
+                        result_content = "%s: %s" % (pod_title, content)
 
                 # if no input pod was found, title is first plaintext pod
                 if not infobox_title:
@@ -109,14 +114,16 @@ def response(resp):
     if not result_chunks:
         return []
 
+    title = "Wolfram|Alpha (%s)" % infobox_title
+
     # append infobox
     results.append({'infobox': infobox_title,
                     'attributes': result_chunks,
-                    'urls': [{'title': 'Wolfram|Alpha', 'url': resp.request.headers['Referer'].decode('utf8')}]})
+                    'urls': [{'title': 'Wolfram|Alpha', 'url': resp.request.headers['Referer']}]})
 
     # append link to site
-    results.append({'url': resp.request.headers['Referer'].decode('utf8'),
-                    'title': 'Wolfram|Alpha',
-                    'content': infobox_title})
+    results.append({'url': resp.request.headers['Referer'],
+                    'title': title,
+                    'content': result_content})
 
     return results

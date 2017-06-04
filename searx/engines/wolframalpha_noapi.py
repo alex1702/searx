@@ -10,9 +10,9 @@
 
 from json import loads
 from time import time
-from urllib import urlencode
 
 from searx.poolrequests import get as http_get
+from searx.url_utils import urlencode
 
 # search-url
 url = 'https://www.wolframalpha.com/'
@@ -34,7 +34,7 @@ search_url = url + 'input/json.jsp'\
 referer_url = url + 'input/?{query}'
 
 token = {'value': '',
-         'last_updated': 0}
+         'last_updated': None}
 
 # pods to display as image in infobox
 # this pods do return a plaintext, but they look better and are more useful as images
@@ -61,7 +61,7 @@ obtain_token()
 # do search-request
 def request(query, params):
     # obtain token if last update was more than an hour
-    if time() - token['last_updated'] > 3600:
+    if time() - (token['last_updated'] or 0) > 3600:
         obtain_token()
     params['url'] = search_url.format(query=urlencode({'input': query}), token=token['value'])
     params['headers']['Referer'] = referer_url.format(query=urlencode({'i': query}))
@@ -80,10 +80,12 @@ def response(resp):
 
     # TODO handle resp_json['queryresult']['assumptions']
     result_chunks = []
-    infobox_title = None
+    infobox_title = ""
+    result_content = ""
     for pod in resp_json['queryresult']['pods']:
         pod_id = pod.get('id', '')
         pod_title = pod.get('title', '')
+        pod_is_result = pod.get('primary', None)
 
         if 'subpods' not in pod:
             continue
@@ -97,6 +99,10 @@ def response(resp):
                 if subpod['plaintext'] != '(requires interactivity)':
                     result_chunks.append({'label': pod_title, 'value': subpod['plaintext']})
 
+                if pod_is_result or not result_content:
+                    if pod_id != "Input":
+                        result_content = pod_title + ': ' + subpod['plaintext']
+
             elif 'img' in subpod:
                 result_chunks.append({'label': pod_title, 'image': subpod['img']})
 
@@ -105,10 +111,10 @@ def response(resp):
 
     results.append({'infobox': infobox_title,
                     'attributes': result_chunks,
-                    'urls': [{'title': 'Wolfram|Alpha', 'url': resp.request.headers['Referer'].decode('utf8')}]})
+                    'urls': [{'title': 'Wolfram|Alpha', 'url': resp.request.headers['Referer']}]})
 
-    results.append({'url': resp.request.headers['Referer'].decode('utf8'),
-                    'title': 'Wolfram|Alpha',
-                    'content': infobox_title})
+    results.append({'url': resp.request.headers['Referer'],
+                    'title': 'Wolfram|Alpha (' + infobox_title + ')',
+                    'content': result_content})
 
     return results
