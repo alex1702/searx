@@ -50,9 +50,8 @@ def request(query, params):
     params['url'] = search_url.format(query=urlencode({'q': query}),
                                       search_options=urlencode(search_options))
 
-    if params['language'] != 'all':
-        language_array = params['language'].lower().split('-')
-        params['url'] += '&lr=lang_' + language_array[0]
+    language_array = params['language'].lower().split('-')
+    params['url'] += '&lr=lang_' + language_array[0]
 
     return params
 
@@ -67,8 +66,8 @@ def response(resp):
     for result in dom.xpath('//div[@class="g"]|//div[@class="g _cy"]'):
         try:
             r = {
-                'url': result.xpath('.//div[@class="_cnc"]//a/@href')[0],
-                'title': ''.join(result.xpath('.//div[@class="_cnc"]//h3//text()')),
+                'url': result.xpath('.//a[@class="l _PMs"]')[0].attrib.get("href"),
+                'title': ''.join(result.xpath('.//a[@class="l _PMs"]//text()')),
                 'content': ''.join(result.xpath('.//div[@class="st"]//text()')),
             }
         except:

@@ -66,9 +66,11 @@ from searx.search import SearchWithPlugins, get_search_query_from_webapp
 from searx.query import RawTextQuery
 from searx.autocomplete import searx_bang, backends as autocomplete_backends
 from searx.plugins import plugins
+from searx.plugins.oa_doi_rewrite import get_doi_resolver
 from searx.preferences import Preferences, ValidationException
 from searx.answerers import answerers
 from searx.url_utils import urlencode, urlparse, urljoin
+from searx.utils import new_hmac
 
 # check if the pyopenssl package is installed.
 # It is needed for SSL connection without trouble, see #298
@@ -86,6 +88,9 @@ except:
 
 if sys.version_info[0] == 3:
     unicode = str
+    PY3 = True
+else:
+    PY3 = False
 
 # serve pages with HTTP/1.1
 from werkzeug.serving import WSGIRequestHandler
@@ -120,7 +125,9 @@ app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
 app.secret_key = settings['server']['secret_key']
 
-if not searx_debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+if not searx_debug \
+   or os.environ.get("WERKZEUG_RUN_MAIN") == "true" \
+   or os.environ.get('UWSGI_ORIGINAL_PROC_NAME') is not None:
     initialize_engines(settings['engines'])
 
 babel = Babel(app)
@@ -140,7 +147,7 @@ _category_names = (gettext('files'),
                    gettext('map'),
                    gettext('science'))
 
-outgoing_proxies = settings['outgoing'].get('proxies', None)
+outgoing_proxies = settings['outgoing'].get('proxies') or None
 
 
 @babel.localeselector
@@ -288,7 +295,7 @@ def image_proxify(url):
     if settings.get('result_proxy'):
         return proxify(url)
 
-    h = hmac.new(settings['server']['secret_key'], url.encode('utf-8'), hashlib.sha256).hexdigest()
+    h = new_hmac(settings['server']['secret_key'], url.encode('utf-8'))
 
     return '{0}?{1}'.format(url_for('image_proxy'),
                             urlencode(dict(url=url.encode('utf-8'), h=h)))
@@ -351,7 +358,7 @@ def render(template_name, override_theme=None, **kwargs):
 
     kwargs['image_proxify'] = image_proxify
 
-    kwargs['proxify'] = proxify if settings.get('result_proxy') else None
+    kwargs['proxify'] = proxify if settings.get('result_proxy', {}).get('url') else None
 
     kwargs['get_result_template'] = get_result_template
 
@@ -368,6 +375,8 @@ def render(template_name, override_theme=None, **kwargs):
     kwargs['results_on_new_tab'] = request.preferences.get_value('results_on_new_tab')
 
     kwargs['unicode'] = unicode
+
+    kwargs['preferences'] = request.preferences
 
     kwargs['scripts'] = set()
     for plugin in request.user_plugins:
@@ -390,7 +399,7 @@ def pre_request():
     preferences = Preferences(themes, list(categories.keys()), engines, plugins)
     request.preferences = preferences
     try:
-        preferences.parse_cookies(request.cookies)
+        preferences.parse_dict(request.cookies)
     except:
         request.errors.append(gettext('Invalid settings, please edit your preferences'))
 
@@ -400,6 +409,15 @@ def pre_request():
     for k, v in request.args.items():
         if k not in request.form:
             request.form[k] = v
+
+    if request.form.get('preferences'):
+        preferences.parse_encoded_data(request.form['preferences'])
+    else:
+        try:
+            preferences.parse_dict(request.form)
+        except Exception as e:
+            logger.exception('invalid settings')
+            request.errors.append(gettext('Invalid settings'))
 
     # request.user_plugins
     request.user_plugins = []
@@ -527,7 +545,9 @@ def index():
                                     'answers': list(result_container.answers),
                                     'corrections': list(result_container.corrections),
                                     'infoboxes': result_container.infoboxes,
-                                    'suggestions': list(result_container.suggestions)}),
+                                    'suggestions': list(result_container.suggestions),
+                                    'unresponsive_engines': list(result_container.unresponsive_engines)},
+                                   default=lambda item: list(item) if isinstance(item, set) else item),
                         mimetype='application/json')
     elif output_format == 'csv':
         csv = UnicodeWriter(StringIO())
@@ -566,6 +586,7 @@ def index():
         corrections=result_container.corrections,
         infoboxes=result_container.infoboxes,
         paging=result_container.paging,
+        unresponsive_engines=result_container.unresponsive_engines,
         current_language=search_query.lang,
         base_url=get_base_url(),
         theme=get_current_theme_name(),
@@ -589,7 +610,10 @@ def autocompleter():
     disabled_engines = request.preferences.engines.get_disabled()
 
     # parse query
-    raw_text_query = RawTextQuery(request.form.get('q', u'').encode('utf-8'), disabled_engines)
+    if PY3:
+        raw_text_query = RawTextQuery(request.form.get('q', b''), disabled_engines)
+    else:
+        raw_text_query = RawTextQuery(request.form.get('q', u'').encode('utf-8'), disabled_engines)
     raw_text_query.parse_query()
 
     # check if search query is set
@@ -606,8 +630,8 @@ def autocompleter():
     if len(raw_results) <= 3 and completer:
         # get language from cookie
         language = request.preferences.get_value('language')
-        if not language or language == 'all':
-            language = 'en'
+        if not language:
+            language = settings['search']['language']
         else:
             language = language.split('-')[0]
         # run autocompletion
@@ -681,8 +705,12 @@ def preferences():
                   shortcuts={y: x for x, y in engine_shortcuts.items()},
                   themes=themes,
                   plugins=plugins,
+                  doi_resolvers=settings['doi_resolvers'],
+                  current_doi_resolver=get_doi_resolver(request.args, request.preferences.get_value('doi_resolver')),
                   allowed_plugins=allowed_plugins,
                   theme=get_current_theme_name(),
+                  preferences_url_params=request.preferences.get_as_url_params(),
+                  base_url=get_base_url(),
                   preferences=True)
 
 
@@ -693,7 +721,7 @@ def image_proxy():
     if not url:
         return '', 400
 
-    h = hmac.new(settings['server']['secret_key'], url, hashlib.sha256).hexdigest()
+    h = new_hmac(settings['server']['secret_key'], url)
 
     if h != request.args.get('h'):
         return '', 400
@@ -720,7 +748,7 @@ def image_proxy():
         logger.debug('image-proxy: wrong content-type: {0}'.format(resp.headers.get('content-type')))
         return '', 400
 
-    img = ''
+    img = b''
     chunk_counter = 0
 
     for chunk in resp.iter_content(1024 * 1024):
@@ -781,7 +809,8 @@ def opensearch():
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path,
-                                            'static/themes',
+                                            static_path,
+                                            'themes',
                                             get_current_theme_name(),
                                             'img'),
                                'favicon.png',
@@ -822,7 +851,10 @@ def config():
                     'autocomplete': settings['search']['autocomplete'],
                     'safe_search': settings['search']['safe_search'],
                     'default_theme': settings['ui']['default_theme'],
-                    'version': VERSION_STRING})
+                    'version': VERSION_STRING,
+                    'doi_resolvers': [r for r in search['doi_resolvers']],
+                    'default_doi_resolver': settings['default_doi_resolver'],
+                    })
 
 
 @app.errorhandler(404)
