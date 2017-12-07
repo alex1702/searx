@@ -4,9 +4,8 @@
 {%- endmacro %}
 
 <!-- Draw favicon -->
-<!-- TODO: using url_for methode -->
 {% macro draw_favicon(favicon) -%}
-    <img width="32" height="32" class="favicon" src="static/themes/oscar/img/icons/{{ favicon }}.png" alt="{{ favicon }}" />
+    <img width="32" height="32" class="favicon" src="{{ url_for('static', filename='themes/oscar/img/icons/' + favicon + '.png') }}" alt="{{ favicon }}" />
 {%- endmacro %}
 
 {%- macro result_link(url, title, classes='') -%}
@@ -20,9 +19,6 @@
 
 <!-- Draw result sub header -->
 {% macro result_sub_header(result) -%}
-    <span class="label label-default pull-right">{{ result.engine }}</span>
-    <div class="pull-left">
-    <p class="result_link">{{ result.pretty_url }}&lrm;</p>
     {% if result.publishedDate %}<time class="text-muted" datetime="{{ result.pubdate }}" >{{ result.publishedDate }}</time>{% endif %}
     {% if result.magnetlink %}<small> &bull; {{ result_link(result.magnetlink, icon('magnet') + _('magnet link'), "magnetlink") }}</small>{% endif %}
     {% if result.torrentfile %}<small> &bull; {{ result_link(result.torrentfile, icon('download-alt') + _('torrent file'), "torrentfile") }}</small>{% endif %}
@@ -46,8 +42,6 @@
 <!-- Draw result footer -->
 {% macro result_footer_rtl(result) -%}
     <div class="clearfix"></div>
-<<<<<<< HEAD
-=======
     {% for engine in result.engines %}
         <span class="label label-default">{{ engine }}</span>
     {% endfor %}
@@ -56,7 +50,6 @@
     <small>{{ result_link(proxify(result.url), icon('sort') + _('proxied'), "text-info") }}</small>
     {% endif %}
     <div class="external-link">{{ result.pretty_url }}</div>
->>>>>>> 92ca80ba5a257a8477863e941be421f386a43de7
 {%- endmacro %}
 
 {% macro preferences_item_header(info, label, rtl) -%}
@@ -91,4 +84,16 @@
             <span class="onoffswitch-switch"></span>
         </label>
     </div>
+{%- endmacro %}
+
+{% macro support_toggle(supports) -%}
+    {% if supports %}
+    <span class="label label-success">
+        {{ _("supported") }}
+    </span>
+    {% else %}
+    <span class="label label-danger">
+        {{ _("not supported") }}
+    </span>
+    {% endif %}
 {%- endmacro %}
